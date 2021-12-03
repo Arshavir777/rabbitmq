@@ -1,0 +1,46 @@
+version: "3.2"
+services:
+  rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+        - 5673:5672
+        - 15673:15672
+    networks:
+        - rabbitmq_nodejs
+  service1:
+    build:
+      context: ./service1
+    container_name: 's1'
+    volumes:
+      - ./service1:/app
+    tty: true
+    depends_on:
+      - "rabbitmq"
+    command: sh -c '/bin/wait-for-it.sh rabbitmq:5672 --timeout=30 -- node main.js'
+    environment:
+      NODE_ENV: dev
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+      AMQP_QUEUE_1: special-queue-1
+      AMQP_QUEUE_2: special-queue-2
+    networks:
+      - rabbitmq_nodejs
+  service2:
+    build:
+      context: ./service2
+    container_name: 's2'
+    volumes:
+      - ./service2:/app
+    depends_on:
+      - "rabbitmq"
+    command: sh -c '/bin/wait-for-it.sh rabbitmq:5672 --timeout=30 -- node main.js'
+    environment:
+      NODE_ENV: dev
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+      AMQP_QUEUE_1: special-queue-1
+      AMQP_QUEUE_2: special-queue-2
+    networks:
+      - rabbitmq_nodejs
+networks:
+  rabbitmq_nodejs:
+    driver: bridge
